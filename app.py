@@ -25,6 +25,63 @@ def users():
     print(userDetails)
     return render_template('users.html',users=userDetails)
 
+@app.route('/register',methods=['GET','POST'])
+@cross_origin()
+def register():
+    if request.method=='POST':
+        data=json.loads(request.data)
+        email=data['email']
+        password=data['password']
+        cur=mysql.connection.cursor()
+        cur.execute('select * from user_login where email = %s',[email])
+        result=cur.fetchall()
+        print(result)
+        if len(result)>0:
+            response = jsonify(message="Already email exists")
+        else:
+            cur.execute('INSERT into user_login (email,password) values(%s,%s)',(email,password))
+            mysql.connection.commit()
+            cur.execute('select user_id from user_login where email=%s',[email])
+            result=cur.fetchone()
+            print(result)
+            res={
+                "msg":"success",
+                "id":result[0
+                ]
+            }
+            response = jsonify(res)
+        return response
+
+
+@app.route('/loginuser',methods=['GET','POST'])
+@cross_origin()
+def loginuser():
+    if request.method=='POST':
+        data=json.loads(request.data)
+        email=data['email']
+        password=data['password']
+        cur=mysql.connection.cursor()
+        cur.execute('select * from user_login where email = %s',[email])
+        result=cur.fetchall()
+        print(result)
+        if len(result)>0:
+            cur.execute('select user_id from user_login where email=%s and password=%s',[email,password])
+            result=cur.fetchone()
+            print(result)
+            if result==None:
+                response = jsonify(message="incorrect password")
+            else:
+                r=result
+                res={
+                    "msg":"success",
+                    "id":r[0]
+                }
+                response = jsonify(res)
+        else:
+            response = jsonify(message="please register to continue")
+        return response
+
+
 @app.route('/login',methods=['GET','POST'])
 @cross_origin()
 def login():
