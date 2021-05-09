@@ -92,16 +92,34 @@ def login():
         name=data['name']
         googleid=data['googleid']
         cur=mysql.connection.cursor()
-        cur.execute('SELECT * from login_with_google')
+        cur.execute('SELECT * from login_with_google where email=%s',[email])
         result=cur.fetchall()
         print("result-----",result)
         if len(result)>0:
-            response = jsonify(message="Already email exists")
+            #response = jsonify(message="Already email exists")
+            cur.execute('select user_id from login_with_google where email=%s',[email])
+            result=cur.fetchone()
+            print(result)
+            res={
+                "msg":"success",
+                "id":result[0
+                ],
+                "email":email,
+            }
+            response = jsonify(res)
         else:
             cur.execute('INSERT into login_with_google (email,name,google_id) values(%s,%s,%s)',(email,name,googleid))
             mysql.connection.commit()
-            response = jsonify(message="success")
-        
+            cur.execute('select user_id from login_with_google where email=%s',[email])
+            result=cur.fetchone()
+            print(result)
+            res={
+                "msg":"success",
+                "id":result[0
+                ],
+                "email":email,
+            }
+            response = jsonify(res)
         return response
     return "success"
 
