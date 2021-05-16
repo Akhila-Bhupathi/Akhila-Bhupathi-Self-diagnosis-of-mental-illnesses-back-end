@@ -1,6 +1,8 @@
 from flask import Flask, render_template,request,json,jsonify
+from flask.wrappers import Response
 from flask_mysqldb import MySQL
 from flask_cors import CORS, cross_origin
+from questions import set1
 
 app=Flask(__name__)
 cors = CORS(app)
@@ -14,6 +16,7 @@ mysql=MySQL(app)
 
 @app.route('/')
 def index():
+    print(set1)
     return render_template('index.html')
 
 @app.route('/users')
@@ -122,6 +125,37 @@ def login():
             response = jsonify(res)
         return response
     return "success"
+
+@app.route("/questions",methods=['GET','POST'])
+def questions():
+    if request.method=='GET':
+        response=jsonify(set1)
+    if request.method=='POST':
+        data=json.loads(request.data)
+        print(data)
+        response=jsonify(message="success")
+    return response
+
+@app.route("/changepassword",methods=['POST'])
+def changePassword():
+    if request.method=='POST':
+        data=json.loads(request.data)
+        print(data)
+        id=data['id']
+        oldpassword=data['oldpassword']
+        newpassword=data['newpassword']
+        cur=mysql.connection.cursor()
+        cur.execute('SELECT * from user_login where user_id=%s',[id])
+        result=cur.fetchall()
+        print("result-----",result[0][2])
+        password=result[0][2]
+        if password==oldpassword:
+            cur.execute("UPDATE user_login set password=%s where user_id=%s",[newpassword,id])
+            mysql.connection.commit()
+            response=jsonify(message="successfully updated")
+        else:
+            response=jsonify(message="Wrong password")
+    return response
 
 if __name__=='__main__':
     app.run(debug=True)
