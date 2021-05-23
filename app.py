@@ -2,12 +2,12 @@ from flask import Flask, render_template,request,json,jsonify
 from flask.wrappers import Response
 from flask_mysqldb import MySQL
 from flask_cors import CORS, cross_origin
-from questions import set1,ptsd_questions
+from questions import set1,ptsd_questions,adhd_questions 
 import numpy as np
 import pandas as pd  
 import pickle
 
-ptsd_model=pickle.load(open('ptsd_model.pkl','rb'))
+ptsd_model=pickle.load(open('adhd_model.pkl','rb'))
 app=Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -133,7 +133,7 @@ def login():
 @app.route("/questions",methods=['GET','POST'])
 def questions():
     if request.method=='GET':
-        response=jsonify(ptsd_questions)
+        response=jsonify(adhd_questions)
     if request.method=='POST':
         data=json.loads(request.data)
         print(data)
@@ -144,10 +144,12 @@ def questions():
                 ans.append('1')
             elif x['answer']=="No":
                 ans.append('0')
+            elif x['answer']=="Somewhat":
+                ans.append('0.5')
             else:
                 ans.append(x['answer'])
         print("-------",ans)
-        init_features=[int(x) for x in ans]
+        init_features=[float(x) for x in ans]
         print("--------",init_features)
         final_features=[np.array(init_features)]
         print("final---------",final_features)
