@@ -1,2 +1,5 @@
 /venv
 questions.py
+ptsd_model.py
+ptsd_model.pkl
+ptsd.csv

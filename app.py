@@ -2,8 +2,12 @@ from flask import Flask, render_template,request,json,jsonify
 from flask.wrappers import Response
 from flask_mysqldb import MySQL
 from flask_cors import CORS, cross_origin
-from questions import set1
+from questions import set1,ptsd_questions
+import numpy as np
+import pandas as pd  
+import pickle
 
+ptsd_model=pickle.load(open('ptsd_model.pkl','rb'))
 app=Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -129,11 +133,34 @@ def login():
 @app.route("/questions",methods=['GET','POST'])
 def questions():
     if request.method=='GET':
-        response=jsonify(set1)
+        response=jsonify(ptsd_questions)
     if request.method=='POST':
         data=json.loads(request.data)
         print(data)
-        response=jsonify(message="success")
+        print(data['answer'])
+        ans=[]
+        for x in data['answer']:
+            if x['answer']=="Yes":
+                ans.append('1')
+            elif x['answer']=="No":
+                ans.append('0')
+            else:
+                ans.append(x['answer'])
+        print("-------",ans)
+        init_features=[int(x) for x in ans]
+        print("--------",init_features)
+        final_features=[np.array(init_features)]
+        print("final---------",final_features)
+        final=pd.DataFrame(final_features)
+        predict=ptsd_model.predict(final)
+        output=round(predict[0],2)
+        print("Prediction----",output)
+        res={
+            "prediction":int(output),
+            "message":"Success"
+        }
+        response=jsonify(res)
+        #response=jsonify(message="success")
     return response
 
 @app.route("/changepassword",methods=['POST'])
