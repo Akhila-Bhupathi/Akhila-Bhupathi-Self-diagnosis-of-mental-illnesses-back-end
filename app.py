@@ -2,15 +2,20 @@ from flask import Flask, render_template,request,json,jsonify
 from flask.wrappers import Response
 from flask_mysqldb import MySQL
 from flask_cors import CORS, cross_origin
-from questions import set1,ptsd_questions,adhd_questions 
+from questions import ptsd_questions,adhd_questions,schizophrenia_questions,depression_questions,eatingdisorders_questions,general_questions 
 import numpy as np
 import pandas as pd  
 import pickle
 
-ptsd_model=pickle.load(open('ptsd_model.pkl','rb'))
-adhd_model=pickle.load(open('adhd_model.pkl','rb'))
-ml_models=[ptsd_model,adhd_model]
-question_sets=[ptsd_questions,adhd_questions]
+ptsd_model=pickle.load(open('PTSD_model.pkl','rb'))
+adhd_model=pickle.load(open('ADHD_model.pkl','rb'))
+schizophrenia_model=pickle.load(open('Schizophrenia_model.pkl','rb'))
+depression_model=pickle.load(open('Depression_model.pkl','rb'))
+eatingdisorders_model=pickle.load(open('Eatingdisorders_model.pkl','rb'))
+general_model=pickle.load(open('General_model.pkl','rb'))
+
+ml_models=[general_model,ptsd_model,adhd_model,schizophrenia_model,depression_model,eatingdisorders_model]
+question_sets=[general_questions,ptsd_questions,adhd_questions,schizophrenia_questions,depression_questions,eatingdisorders_questions,]
 
 app=Flask(__name__)
 cors = CORS(app)
@@ -143,7 +148,7 @@ def questions():
         cur.execute('select questionset_id from user_activity where user_id=%s order by date desc',[id])
         result=cur.fetchone()
         set_id=int(result[0])
-        new_set_id=(set_id+1)%2
+        new_set_id=(set_id+1)%6
         print("------",result)
         response=jsonify(question_sets[new_set_id])
     if request.method=='POST':
@@ -156,7 +161,7 @@ def questions():
         cur.execute('select questionset_id from user_activity where user_id=%s order by date desc',[id])
         result_of_set=cur.fetchone()
         set_id=int(result_of_set[0])
-        new_set_id=(set_id+1)%2
+        new_set_id=(set_id+1)%6
         ans=[]
         for x in data['answer']:
             if x['answer']=="Yes":
