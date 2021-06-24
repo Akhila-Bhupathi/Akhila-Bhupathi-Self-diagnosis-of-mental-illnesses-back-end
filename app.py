@@ -2,12 +2,21 @@ from flask import Flask, render_template,request,json,jsonify
 from flask.wrappers import Response
 from flask_mysqldb import MySQL
 from flask_cors import CORS, cross_origin
-from questions import set1,ptsd_questions
+from questions import ptsd_questions,adhd_questions,schizophrenia_questions,depression_questions,eatingdisorders_questions,general_questions 
 import numpy as np
 import pandas as pd  
 import pickle
 
-ptsd_model=pickle.load(open('ptsd_model.pkl','rb'))
+ptsd_model=pickle.load(open('PTSD_model.pkl','rb'))
+adhd_model=pickle.load(open('ADHD_model.pkl','rb'))
+schizophrenia_model=pickle.load(open('Schizophrenia_model.pkl','rb'))
+depression_model=pickle.load(open('Depression_model.pkl','rb'))
+eatingdisorders_model=pickle.load(open('Eatingdisorders_model.pkl','rb'))
+general_model=pickle.load(open('General_model.pkl','rb'))
+
+ml_models=[general_model,ptsd_model,adhd_model,schizophrenia_model,depression_model,eatingdisorders_model]
+question_sets=[general_questions,ptsd_questions,adhd_questions,schizophrenia_questions,depression_questions,eatingdisorders_questions,]
+
 app=Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -133,27 +142,54 @@ def login():
 @app.route("/questions",methods=['GET','POST'])
 def questions():
     if request.method=='GET':
-        response=jsonify(ptsd_questions)
+        args=request.args
+        id=args['id']
+        cur=mysql.connection.cursor()
+        cur.execute('select questionset_id from user_activity where user_id=%s order by date desc',[id])
+        result=cur.fetchone()
+        if(result):
+            set_id=int(result[0])   
+            new_set_id=(set_id+1)%6
+        else:
+            new_set_id=0
+        print("------",result)
+        response=jsonify(question_sets[new_set_id])
     if request.method=='POST':
         data=json.loads(request.data)
         print(data)
         print(data['answer'])
+        id=int(data['id'])
+        print("id-----",id)
+        cur=mysql.connection.cursor()
+        cur.execute('select questionset_id from user_activity where user_id=%s order by date desc',[id])
+        result_of_set=cur.fetchone()
+        if(result_of_set):
+            set_id=int(result_of_set[0])
+            new_set_id=(set_id+1)%6
+        else:
+            new_set_id=0
         ans=[]
         for x in data['answer']:
             if x['answer']=="Yes":
                 ans.append('1')
             elif x['answer']=="No":
                 ans.append('0')
+            elif x['answer']=="Somewhat":
+                ans.append('0.5')
             else:
                 ans.append(x['answer'])
         print("-------",ans)
-        init_features=[int(x) for x in ans]
+        init_features=[float(x) for x in ans]
         print("--------",init_features)
         final_features=[np.array(init_features)]
         print("final---------",final_features)
         final=pd.DataFrame(final_features)
-        predict=ptsd_model.predict(final)
+        predict=ml_models[new_set_id].predict(final)
         output=round(predict[0],2)
+        result=int(output)
+        
+        cur.execute('INSERT into user_activity (user_id,result,questionset_id) values(%s,%s,%s)',(id,result,new_set_id))
+        mysql.connection.commit()
         print("Prediction----",output)
         res={
             "prediction":int(output),
